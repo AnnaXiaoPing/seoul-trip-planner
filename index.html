@@ -276,7 +276,7 @@
 <script>
 const SUPABASE_URL = 'https://rozxbpphcsvlyfbymxsz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvenhicHBoY3N2bHlmYnlteHN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzA4NjYsImV4cCI6MjA5NzE0Njg2Nn0.V9EP9bSClIKC_q-2B1BcnY8ekvIcgvfmNemZmfPqiZw';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const { createApp } = Vue;
 createApp({
@@ -337,10 +337,10 @@ createApp({
       this.syncStatus = 'loading';
       try {
         const [cfg, days, items, exps] = await Promise.all([
-          supabase.from('trip_config').select('*').eq('id','default').single(),
-          supabase.from('trip_days').select('*').order('day_number'),
-          supabase.from('schedule_items').select('*'),
-          supabase.from('expenses').select('*').order('created_at'),
+          db.from('trip_config').select('*').eq('id','default').single(),
+          db.from('trip_days').select('*').order('day_number'),
+          db.from('schedule_items').select('*'),
+          db.from('expenses').select('*').order('created_at'),
         ]);
         if (cfg.data) this.config = cfg.data;
         this.days = days.data || [];
@@ -350,7 +350,7 @@ createApp({
       } catch(e) { this.syncStatus = 'err'; }
     },
     subscribeRealtime() {
-      supabase.channel('realtime').on('postgres_changes',{event:'*',schema:'public',table:'trip_days'},()=>this.loadAll())
+      db.channel('realtime').on('postgres_changes',{event:'*',schema:'public',table:'trip_days'},()=>this.loadAll())
         .on('postgres_changes',{event:'*',schema:'public',table:'schedule_items'},()=>this.loadAll())
         .on('postgres_changes',{event:'*',schema:'public',table:'expenses'},()=>this.loadAll())
         .on('postgres_changes',{event:'*',schema:'public',table:'trip_config'},()=>this.loadAll())
@@ -358,18 +358,18 @@ createApp({
     },
     async saveConfig() {
       this.syncStatus='loading';
-      await supabase.from('trip_config').upsert({id:'default',...this.config,updated_at:new Date().toISOString()});
+      await db.from('trip_config').upsert({id:'default',...this.config,updated_at:new Date().toISOString()});
       this.syncStatus='ok';
     },
     async addDay() {
       this.syncStatus='loading';
-      const {data} = await supabase.from('trip_days').insert({day_number:this.days.length+1,date_label:'新的一天'}).select().single();
+      const {data} = await db.from('trip_days').insert({day_number:this.days.length+1,date_label:'新的一天'}).select().single();
       if(data){this.days.push(data);this.currentDay=this.days.length-1;}
       this.syncStatus='ok';
     },
     async removeDay(i) {
       if(this.days.length<=1)return;
-      await supabase.from('trip_days').delete().eq('id',this.days[i].id);
+      await db.from('trip_days').delete().eq('id',this.days[i].id);
       this.days.splice(i,1);
       if(this.currentDay>=this.days.length)this.currentDay=this.days.length-1;
     },
@@ -379,31 +379,31 @@ createApp({
       if(!this.form.place||!this.form.time)return;
       this.syncStatus='loading';
       if(this.editingItem){
-        await supabase.from('schedule_items').update({time:this.form.time,place:this.form.place,category:this.form.category,note:this.form.note}).eq('id',this.editingItem.id);
+        await db.from('schedule_items').update({time:this.form.time,place:this.form.place,category:this.form.category,note:this.form.note}).eq('id',this.editingItem.id);
         const idx=this.scheduleItems.findIndex(i=>i.id===this.editingItem.id);
         if(idx>=0)this.scheduleItems[idx]={...this.scheduleItems[idx],...this.form};
       } else {
         const dayId=this.days[this.currentDay].id;
-        const {data}=await supabase.from('schedule_items').insert({day_id:dayId,...this.form}).select().single();
+        const {data}=await db.from('schedule_items').insert({day_id:dayId,...this.form}).select().single();
         if(data)this.scheduleItems.push(data);
       }
       this.showModal=false; this.syncStatus='ok';
     },
     async removeScheduleItem(id) {
-      await supabase.from('schedule_items').delete().eq('id',id);
+      await db.from('schedule_items').delete().eq('id',id);
       this.scheduleItems=this.scheduleItems.filter(i=>i.id!==id);
     },
     async addExpense() {
       if(!this.newExp.description||!this.newExp.amount||!this.newExp.paid_by)return;
       const sw=this.newExp.split_with.length>0?[...this.newExp.split_with]:[...this.config.people];
       this.syncStatus='loading';
-      const {data}=await supabase.from('expenses').insert({...this.newExp,amount:Number(this.newExp.amount),split_with:sw}).select().single();
+      const {data}=await db.from('expenses').insert({...this.newExp,amount:Number(this.newExp.amount),split_with:sw}).select().single();
       if(data)this.expenses.push(data);
       this.newExp={description:'',amount:null,paid_by:'',split_with:[]};
       this.syncStatus='ok';
     },
     async removeExpense(id) {
-      await supabase.from('expenses').delete().eq('id',id);
+      await db.from('expenses').delete().eq('id',id);
       this.expenses=this.expenses.filter(e=>e.id!==id);
     },
     toggleSplit(p){const i=this.newExp.split_with.indexOf(p);if(i>=0)this.newExp.split_with.splice(i,1);else this.newExp.split_with.push(p);},
