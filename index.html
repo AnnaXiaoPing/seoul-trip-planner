@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🇰🇷 首爾旅遊規劃</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0f0f1a; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+    .card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    .accent { background: linear-gradient(135deg, #e94560, #0f3460); }
+    .tab-active { background: linear-gradient(135deg, #e94560, #c23152); color: white; }
+    .tab-inactive { color: rgba(255,255,255,0.6); }
+    .input-style { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 10px 14px; width: 100%; outline: none; transition: all 0.2s; }
+    .input-style:focus { border-color: #e94560; box-shadow: 0 0 0 3px rgba(233,69,96,0.2); }
+    .input-style::placeholder { color: rgba(255,255,255,0.3); }
+    .btn-primary { background: linear-gradient(135deg, #e94560, #c23152); color: white; border: none; border-radius: 12px; padding: 10px 20px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(233,69,96,0.4); }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 6px 14px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+    .btn-secondary:hover { background: rgba(255,255,255,0.18); }
+    .btn-danger { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+    .btn-danger:hover { background: rgba(239,68,68,0.35); }
+    .schedule-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 14px; margin-bottom: 10px; transition: all 0.2s; }
+    .schedule-item:hover { border-color: rgba(233,69,96,0.4); background: rgba(233,69,96,0.05); }
+    .expense-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+    .map-container { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); }
+    .scroll-area { max-height: calc(100vh - 280px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(233,69,96,0.5) transparent; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-pink { background: rgba(233,69,96,0.25); color: #f87171; border: 1px solid rgba(233,69,96,0.3); }
+    .badge-blue { background: rgba(59,130,246,0.25); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+    .badge-green { background: rgba(34,197,94,0.25); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; }
+    .modal-card { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 24px; width: 90%; max-width: 420px; }
+    .split-result { background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(34,197,94,0.3); border-radius: 14px; padding: 14px; margin-top: 10px; }
+    .person-tag { display: inline-block; background: rgba(233,69,96,0.2); color: #f9a8d4; border: 1px solid rgba(233,69,96,0.3); border-radius: 20px; padding: 4px 12px; margin: 3px; font-size: 13px; cursor: pointer; }
+    .person-tag:hover { background: rgba(233,69,96,0.4); }
+    .nav-tab { flex: 1; text-align: center; padding: 12px 4px; cursor: pointer; border-radius: 12px; transition: all 0.2s; font-size: 12px; }
+    .map-btn { background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; border: none; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; width: 100%; margin-top: 6px; }
+    .map-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14,165,233,0.4); }
+    .day-tab { padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; transition: all 0.2s; }
+    select.input-style option { background: #1a1a2e; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(233,69,96,0.5); border-radius: 4px; }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen">
+<div id="app" style="max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- Header -->
+  <div class="p-4 pt-8 pb-3">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-white">🇰🇷 首爾旅遊</h1>
+        <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45)">{{ tripDates }} · {{ people.length }} 人</p>
+      </div>
+      <div class="text-right">
+        <p class="text-xs" style="color:rgba(255,255,255,0.45)">總花費</p>
+        <p class="text-lg font-bold" style="color:#e94560;">₩{{ totalExpense.toLocaleString() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="px-3 pb-2">
+    <div class="card rounded-2xl p-1 flex">
+      <div class="nav-tab" :class="tab==='schedule'?'tab-active':'tab-inactive'" @click="tab='schedule'">
+        <div class="text-lg mb-1">📅</div><div>行程</div>
+      </div>
+      <div class="nav-tab" :class="tab==='expense'?'tab-active':'tab-inactive'" @click="tab='expense'">
+        <div class="text-lg mb-1">💰</div><div>分帳</div>
+      </div>
+      <div class="nav-tab" :class="tab==='map'?'tab-active':'tab-inactive'" @click="tab='map'">
+        <div class="text-lg mb-1">🗺️</div><div>地圖</div>
+      </div>
+      <div class="nav-tab" :class="tab==='members'?'tab-active':'tab-inactive'" @click="tab='members'">
+        <div class="text-lg mb-1">👥</div><div>成員</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 px-3 pb-24" style="overflow-y:auto;">
+
+    <!-- SCHEDULE TAB -->
+    <div v-if="tab==='schedule'">
+      <div class="flex gap-2 mb-3 overflow-x-auto pb-1" style="scrollbar-width:none;">
+        <div v-for="(day, i) in days" :key="i"
+          class="day-tab"
+          :style="currentDay===i ? 'background:linear-gradient(135deg,#e94560,#c23152);color:white;' : 'background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);'"
+          @click="currentDay=i">
+          Day {{ i+1 }}<br><span style="font-size:10px;font-weight:400;">{{ day.date }}</span>
+        </div>
+        <div class="day-tab" style="background:rgba(255,255,255,0.07);color:#e94560;" @click="addDay">+ 新增</div>
+      </div>
+      <div class="card rounded-2xl p-4 mb-3">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-white text-sm">Day {{ currentDay+1 }} 行程</h3>
+          <div class="flex gap-2">
+            <button class="btn-secondary" @click="openAddSchedule">+ 新增</button>
+            <button v-if="days.length>1" class="btn-danger" @click="removeDay(currentDay)">刪除天</button>
+          </div>
+        </div>
+        <div v-if="days[currentDay].items.length===0" class="text-center py-6" style="color:rgba(255,255,255,0.3)">
+          <div class="text-3xl mb-2">📍</div>
+          <p class="text-sm">還沒有行程，快新增吧！</p>
+        </div>
+        <div v-for="(item, idx) in days[currentDay].items" :key="idx" class="schedule-item">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="badge badge-pink">{{ item.time }}</span>
+                <span class="badge badge-blue">{{ item.category }}</span>
+              </div>
+              <p class="font-semibold text-white text-sm">{{ item.place }}</p>
+              <p v-if="item.note" class="text-xs mt-1" style="color:rgba(255,255,255,0.5)">{{ item.note }}</p>
+            </div>
+            <div class="flex gap-1 ml-2">
+              <button class="btn-secondary" style="padding:4px 10px;font-size:11px;" @click="editSchedule(idx)">✏️</button>
+              <button class="btn-danger" style="padding:4px 10px;font-size:11px;" @click="removeSchedule(idx)">🗑️</button>
+            </div>
+          </div>
+          <button class="map-btn mt-2" @click="openMapNav(item.place)">🗺️ 導航到這裡</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPENSE TAB -->
+    <div v-if="tab==='expense'">
+      <div class="card rounded-2xl p-4 mb-3">
+        <h3 class="font-bold text-white text-sm mb-3">💳 支出總覽</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div style="background:rgba(233,69,96,0.1);border:1px solid rgba(233,69,96,0.25);border-radius:12px;padding:12px;text-align:center;">
+            <p class="text-xs" style="color:rgba(255,255,255,0.5)">總花費</p>
+            <p class="font-bold text-lg" style="color:#e94560;">₩{{ totalExpense.toLocaleString() }}</p>
+          </div>
+          <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:12px;padding:12px;text-align:center;">
+            <p class="text-xs" style="color:rgba(255,255,255,0.5)">每人均攤</p>
+            <p class="font-bold text-lg" style="color:#93c5fd;">₩{{ perPerson.toLocaleString() }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card rounded-2xl p-4 mb-3" v-if="settlements.length>0">
+        <h3 class="font-bold text-white text-sm mb-3">💸 誰欠誰錢</h3>
+        <div v-for="(s,i) in settlements" :key="i" class="split-result">
+          <div class="flex items-center justify-between">
+            <span class="text-white text-sm font-medium">{{ s.from }}</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.4)">→ 要付給 →</span>
+            <span class="text-white text-sm font-medium">{{ s.to }}</span>
+          </div>
+          <p class="text-center font-bold mt-2" style="color:#86efac;font-size:1.1rem;">₩{{ Math.round(s.amount).toLocaleString() }}</p>
+        </div>
+      </div>
+      <div class="card rounded-2xl p-4 mb-3" v-else-if="expenses.length>0">
+        <div class="text-center py-4">
+          <div class="text-3xl mb-2">🎉</div>
+          <p class="text-white font-semibold">帳目已平衡！</p>
+        </div>
+      </div>
+      <div class="card rounded-2xl p-4 mb-3">
+        <h3 class="font-bold text-white text-sm mb-3">➕ 新增支出</h3>
+        <input class="input-style mb-2" v-model="newExpense.description" placeholder="支出說明（如：烤肉晚餐）" />
+        <input class="input-style mb-2" type="number" v-model.number="newExpense.amount" placeholder="金額（韓元）" />
+        <select class="input-style mb-2" v-model="newExpense.paidBy">
+          <option value="">誰付錢？</option>
+          <option v-for="p in people" :key="p" :value="p">{{ p }}</option>
+        </select>
+        <p class="text-xs mb-2" style="color:rgba(255,255,255,0.5)">誰需要分攤？（不選=全部）</p>
+        <div class="flex flex-wrap mb-3">
+          <span v-for="p in people" :key="p" class="person-tag"
+            :style="newExpense.splitWith.includes(p) ? 'background:rgba(233,69,96,0.5);font-weight:700;' : ''"
+            @click="toggleSplit(p)">{{ newExpense.splitWith.includes(p) ? '✓ ' : '' }}{{ p }}</span>
+        </div>
+        <button class="btn-primary w-full" @click="addExpense">新增支出</button>
+      </div>
+      <div class="card rounded-2xl p-4">
+        <h3 class="font-bold text-white text-sm mb-3">📋 支出明細</h3>
+        <div v-if="expenses.length===0" class="text-center py-4" style="color:rgba(255,255,255,0.3)">
+          <p class="text-sm">還沒有支出記錄</p>
+        </div>
+        <div v-for="(exp, i) in expenses" :key="i" class="expense-item">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <p class="font-semibold text-white text-sm">{{ exp.description }}</p>
+              <p class="text-xs mt-1" style="color:rgba(255,255,255,0.5)">{{ exp.paidBy }} 付了 · 分攤：{{ exp.splitWith.join(', ') }}</p>
+            </div>
+            <div class="text-right ml-2">
+              <p class="font-bold" style="color:#e94560;">₩{{ exp.amount.toLocaleString() }}</p>
+              <button class="btn-danger mt-1" style="padding:3px 8px;font-size:11px;" @click="removeExpense(i)">刪除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP TAB -->
+    <div v-if="tab==='map'">
+      <div class="card rounded-2xl p-4 mb-3">
+        <h3 class="font-bold text-white text-sm mb-3">🔍 搜尋景點</h3>
+        <div class="flex gap-2">
+          <input class="input-style flex-1" v-model="mapSearch" placeholder="搜尋地點" @keyup.enter="searchMap" />
+          <button class="btn-primary" @click="searchMap">搜尋</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <span v-for="poi in quickPOI" :key="poi" class="person-tag" @click="mapSearch=poi;searchMap()">{{ poi }}</span>
+        </div>
+      </div>
+      <div class="map-container mb-3" style="height:360px;">
+        <iframe :src="mapUrl" width="100%" height="360" style="border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+      <div class="card rounded-2xl p-4">
+        <h3 class="font-bold text-white text-sm mb-3">🚇 今日行程導航</h3>
+        <div v-if="days[currentDay] && days[currentDay].items.length>0">
+          <div v-for="(item, i) in days[currentDay].items" :key="i" class="mb-2">
+            <button class="map-btn" @click="openMapNav(item.place)">📍 {{ item.time }} · {{ item.place }}</button>
+          </div>
+        </div>
+        <div v-else class="text-center py-3" style="color:rgba(255,255,255,0.3)"><p class="text-sm">行程表裡還沒有地點</p></div>
+        <button class="map-btn mt-3" style="background:linear-gradient(135deg,#22c55e,#16a34a);" @click="openCurrentLocation">📡 查看我的目前位置</button>
+      </div>
+    </div>
+
+    <!-- MEMBERS TAB -->
+    <div v-if="tab==='members'">
+      <div class="card rounded-2xl p-4 mb-3">
+        <h3 class="font-bold text-white text-sm mb-3">👥 旅行成員</h3>
+        <div class="flex gap-2 mb-3">
+          <input class="input-style flex-1" v-model="newPerson" placeholder="輸入姓名" @keyup.enter="addPerson" />
+          <button class="btn-primary" @click="addPerson">新增</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <div v-for="(p, i) in people" :key="i" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 14px;" class="flex items-center gap-1">
+            <span class="text-white text-sm">{{ p }}</span>
+            <button @click="removePerson(i)" style="color:#f87171;font-size:16px;background:none;border:none;cursor:pointer;padding:0 0 0 6px;">×</button>
+          </div>
+        </div>
+      </div>
+      <div class="card rounded-2xl p-4 mb-3">
+        <h3 class="font-bold text-white text-sm mb-3">⚙️ 旅行設定</h3>
+        <div class="mb-3">
+          <p class="text-xs mb-1" style="color:rgba(255,255,255,0.5)">旅行日期</p>
+          <input class="input-style" v-model="tripDates" placeholder="例：2025/03/15 - 2025/03/20" />
+        </div>
+        <div>
+          <p class="text-xs mb-1" style="color:rgba(255,255,255,0.5)">旅行標題</p>
+          <input class="input-style" v-model="tripTitle" placeholder="例：首爾春天之旅" />
+        </div>
+      </div>
+      <div class="card rounded-2xl p-4">
+        <h3 class="font-bold text-white text-sm mb-3">📊 個人支出統計</h3>
+        <div v-for="p in people" :key="p" class="expense-item">
+          <div class="flex justify-between items-center">
+            <span class="text-white text-sm font-medium">{{ p }}</span>
+            <div class="text-right">
+              <p class="text-xs" style="color:rgba(255,255,255,0.5)">已付</p>
+              <p class="font-bold" style="color:#86efac;">₩{{ paidByPerson(p).toLocaleString() }}</p>
+            </div>
+          </div>
+          <div class="mt-2 bg-white bg-opacity-5 rounded-full h-1.5">
+            <div class="h-1.5 rounded-full" style="background:linear-gradient(90deg,#e94560,#c23152);" :style="{width: totalExpense>0 ? (paidByPerson(p)/totalExpense*100)+'%' : '0%'}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-bg" v-if="showScheduleModal" @click.self="showScheduleModal=false">
+    <div class="modal-card">
+      <h3 class="font-bold text-white mb-4">{{ editingSchedule>=0 ? '✏️ 編輯行程' : '➕ 新增行程' }}</h3>
+      <input class="input-style mb-3" v-model="scheduleForm.time" placeholder="時間（如：09:00）" />
+      <input class="input-style mb-3" v-model="scheduleForm.place" placeholder="地點名稱" />
+      <select class="input-style mb-3" v-model="scheduleForm.category">
+        <option>🍜 餐廳</option><option>🏛️ 景點</option><option>🛍️ 購物</option>
+        <option>🎭 娛樂</option><option>🏨 住宿</option><option>🚌 交通</option><option>☕ 咖啡</option>
+      </select>
+      <input class="input-style mb-4" v-model="scheduleForm.note" placeholder="備註（可選）" />
+      <div class="flex gap-2">
+        <button class="btn-secondary flex-1" @click="showScheduleModal=false">取消</button>
+        <button class="btn-primary flex-1" @click="saveSchedule">{{ editingSchedule>=0 ? '儲存' : '新增' }}</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const { createApp } = Vue;
+createApp({
+  data() {
+    const saved = JSON.parse(localStorage.getItem('seoulTrip') || 'null');
+    return {
+      tab: 'schedule', currentDay: 0,
+      tripTitle: saved?.tripTitle || '首爾旅遊',
+      tripDates: saved?.tripDates || '2025/04/01 - 2025/04/05',
+      people: saved?.people || ['小明', '小美', '小華'],
+      days: saved?.days || [
+        { date: '4/1 (二)', items: [
+          { time: '10:00', place: '景福宮', category: '🏛️ 景點', note: '建議早點去避開人潮' },
+          { time: '12:30', place: '廣藏市場', category: '🍜 餐廳', note: '必吃蛋餅和馬格利' },
+          { time: '15:00', place: '北村韓屋村', category: '🏛️ 景點', note: '' },
+          { time: '18:30', place: '明洞烤肉', category: '🍜 餐廳', note: '晚餐' },
+        ]},
+        { date: '4/2 (三)', items: [
+          { time: '11:00', place: '弘大', category: '🛍️ 購物', note: '街頭表演、購物' },
+          { time: '14:00', place: 'KAKAO FRIENDS 旗艦店', category: '🛍️ 購物', note: '' },
+          { time: '17:00', place: '漢江公園', category: '🏛️ 景點', note: '看夜景' },
+        ]},
+        { date: '4/3 (四)', items: [
+          { time: '10:00', place: '東大門設計廣場DDP', category: '🏛️ 景點', note: '' },
+          { time: '13:00', place: '東大門市場', category: '🛍️ 購物', note: '' },
+          { time: '19:00', place: '三清洞', category: '☕ 咖啡', note: '' },
+        ]},
+      ],
+      expenses: saved?.expenses || [
+        { description: '景福宮門票', amount: 12000, paidBy: '小明', splitWith: ['小明', '小美', '小華'] },
+        { description: '廣藏市場午餐', amount: 45000, paidBy: '小美', splitWith: ['小明', '小美', '小華'] },
+        { description: '弘大購物', amount: 80000, paidBy: '小華', splitWith: ['小華'] },
+      ],
+      newExpense: { description: '', amount: null, paidBy: '', splitWith: [] },
+      newPerson: '',
+      mapSearch: '首爾',
+      mapUrl: 'https://maps.google.com/maps?q=Seoul&output=embed&z=13&hl=zh-TW',
+      showScheduleModal: false,
+      editingSchedule: -1,
+      scheduleForm: { time: '', place: '', category: '🏛️ 景點', note: '' },
+      quickPOI: ['景福宮', '明洞', '弘大', '東大門', '北村韓屋村', '漢江公園', '南山塔', '梨泰院', '新村', '仁寺洞'],
+    };
+  },
+  computed: {
+    totalExpense() { return this.expenses.reduce((s, e) => s + e.amount, 0); },
+    perPerson() { if (!this.people.length) return 0; return Math.round(this.totalExpense / this.people.length); },
+    settlements() {
+      const balance = {};
+      this.people.forEach(p => balance[p] = 0);
+      this.expenses.forEach(e => {
+        const share = e.splitWith.length > 0 ? e.amount / e.splitWith.length : 0;
+        if (balance[e.paidBy] !== undefined) balance[e.paidBy] += e.amount;
+        e.splitWith.forEach(p => { if (balance[p] !== undefined) balance[p] -= share; });
+      });
+      const debtors = Object.entries(balance).filter(([,v]) => v < -0.5).sort(([,a],[,b]) => a-b);
+      const creditors = Object.entries(balance).filter(([,v]) => v > 0.5).sort(([,a],[,b]) => b-a);
+      const result = [];
+      const d = debtors.map(([n,v]) => [n, -v]);
+      const c = creditors.map(([n,v]) => [n, v]);
+      let di = 0, ci = 0;
+      while (di < d.length && ci < c.length) {
+        const pay = Math.min(d[di][1], c[ci][1]);
+        if (pay > 0.5) result.push({ from: d[di][0], to: c[ci][0], amount: pay });
+        d[di][1] -= pay; c[ci][1] -= pay;
+        if (d[di][1] < 0.5) di++;
+        if (c[ci][1] < 0.5) ci++;
+      }
+      return result;
+    },
+  },
+  methods: {
+    save() { localStorage.setItem('seoulTrip', JSON.stringify({ tripTitle: this.tripTitle, tripDates: this.tripDates, people: this.people, days: this.days, expenses: this.expenses })); },
+    addDay() { this.days.push({ date: 'Day ' + (this.days.length+1), items: [] }); this.currentDay = this.days.length - 1; this.save(); },
+    removeDay(i) { if (this.days.length <= 1) return; this.days.splice(i, 1); if (this.currentDay >= this.days.length) this.currentDay = this.days.length - 1; this.save(); },
+    openAddSchedule() { this.editingSchedule = -1; this.scheduleForm = { time: '', place: '', category: '🏛️ 景點', note: '' }; this.showScheduleModal = true; },
+    editSchedule(idx) { this.editingSchedule = idx; this.scheduleForm = { ...this.days[this.currentDay].items[idx] }; this.showScheduleModal = true; },
+    saveSchedule() {
+      if (!this.scheduleForm.place || !this.scheduleForm.time) return;
+      if (this.editingSchedule >= 0) { this.days[this.currentDay].items[this.editingSchedule] = { ...this.scheduleForm }; }
+      else { this.days[this.currentDay].items.push({ ...this.scheduleForm }); this.days[this.currentDay].items.sort((a,b) => a.time.localeCompare(b.time)); }
+      this.showScheduleModal = false; this.save();
+    },
+    removeSchedule(idx) { this.days[this.currentDay].items.splice(idx, 1); this.save(); },
+    addExpense() {
+      if (!this.newExpense.description || !this.newExpense.amount || !this.newExpense.paidBy) return;
+      const splitWith = this.newExpense.splitWith.length > 0 ? [...this.newExpense.splitWith] : [...this.people];
+      this.expenses.push({ ...this.newExpense, amount: Number(this.newExpense.amount), splitWith });
+      this.newExpense = { description: '', amount: null, paidBy: '', splitWith: [] }; this.save();
+    },
+    removeExpense(i) { this.expenses.splice(i, 1); this.save(); },
+    toggleSplit(p) { const idx = this.newExpense.splitWith.indexOf(p); if (idx >= 0) this.newExpense.splitWith.splice(idx, 1); else this.newExpense.splitWith.push(p); },
+    addPerson() { if (this.newPerson.trim()) { this.people.push(this.newPerson.trim()); this.newPerson = ''; this.save(); } },
+    removePerson(i) { this.people.splice(i, 1); this.save(); },
+    paidByPerson(name) { return this.expenses.filter(e => e.paidBy === name).reduce((s,e) => s + e.amount, 0); },
+    searchMap() { const q = encodeURIComponent(this.mapSearch + ' 韓國首爾'); this.mapUrl = `https://maps.google.com/maps?q=${q}&output=embed&z=15&hl=zh-TW`; },
+    openMapNav(place) { window.open(`https://maps.google.com/maps?q=${encodeURIComponent(place + ' 首爾')}&hl=zh-TW`, '_blank'); },
+    openCurrentLocation() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { this.mapUrl = `https://maps.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}&output=embed&z=16&hl=zh-TW`; }); } },
+  },
+  watch: { tripTitle() { this.save(); }, tripDates() { this.save(); } }
+}).mount('#app');
+</script>
+</body>
+</html>
